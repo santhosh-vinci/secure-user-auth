@@ -4,27 +4,27 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-40 cursor-pointer',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 disabled:pointer-events-none disabled:opacity-40 cursor-pointer select-none',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-white hover:bg-primary-hover shadow-sm hover:shadow-[0_4px_16px_rgba(108,99,255,0.35)] active:scale-[0.99]',
+          'bg-primary text-white hover:bg-primary-hover active:scale-[0.98] shadow-[0_2px_8px_rgba(108,99,255,0.25)] hover:shadow-[0_4px_20px_rgba(108,99,255,0.38)]',
         destructive:
-          'border border-error/30 text-error bg-error/5 hover:bg-error/10 hover:border-error/50',
+          'border border-error/25 text-error bg-error/5 hover:bg-error/10 hover:border-error/40 active:scale-[0.98]',
         outline:
-          'border border-border bg-surface text-muted hover:bg-background hover:text-[#1a1d2e]',
+          'border border-border bg-surface text-[#1a1d2e] hover:bg-background hover:border-primary/30 active:scale-[0.98]',
         ghost:
-          'text-muted hover:bg-background hover:text-[#1a1d2e]',
+          'text-muted hover:bg-background hover:text-[#1a1d2e] active:scale-[0.98]',
         link:
-          'text-primary underline-offset-4 hover:underline',
+          'text-primary underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
         default: 'h-10 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-11 rounded-lg px-6 text-base',
-        icon: 'h-9 w-9',
-        full: 'h-11 w-full px-4 text-base',
+        sm:      'h-8 rounded-lg px-3 text-xs',
+        lg:      'h-12 rounded-xl px-6 text-base',
+        icon:    'h-9 w-9',
+        full:    'h-11 w-full px-4 text-[15px]',
       },
     },
     defaultVariants: {

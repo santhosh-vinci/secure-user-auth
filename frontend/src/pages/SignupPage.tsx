@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +29,6 @@ export function SignupPage() {
     e.preventDefault();
     setError(''); setSuccess(''); setFieldErrors({});
 
-    // Client-side empty checks first
     const errs: Record<string, string[]> = {};
     if (!email.trim()) errs.email = ['Please fill in your email.'];
     if (!password) errs.password = ['Please fill in your password.'];
@@ -37,9 +37,9 @@ export function SignupPage() {
     setPending(true);
     const result = await signup(email, password);
     setPending(false);
+
     if (result.error) {
       if (result.details?.password?.length) {
-        // Collapse all password rule errors into one line
         setFieldErrors({ ...result.details, password: ['Password does not meet the requirements below.'] });
       } else if (result.details && Object.keys(result.details).length > 0) {
         setFieldErrors(result.details);
@@ -52,40 +52,33 @@ export function SignupPage() {
     }
   }
 
+  const passedCount = rules.filter((r) => r.test(password)).length;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <span className="text-primary text-xl">⬡</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1a1d2e]">Create account</h1>
-          <p className="text-sm text-muted mt-1">Start with a free account</p>
-        </div>
+      <div className="w-full max-w-105 animate-slide-up">
+        <BrandHeader title="Create account" subtitle="Start with a free account" />
 
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader>
             <CardTitle>Sign up</CardTitle>
             <CardDescription>Fill in the details below to get started</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email address</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
-                  required
                   error={!!fieldErrors.email}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
                 {fieldErrors.email?.map((msg) => (
-                  <p key={msg} className="text-xs text-error flex items-center gap-1">
-                    {msg}
-                  </p>
+                  <p key={msg} className="text-xs text-error">{msg}</p>
                 ))}
               </div>
 
@@ -96,29 +89,42 @@ export function SignupPage() {
                   type="password"
                   placeholder="••••••••"
                   autoComplete="new-password"
-                  required
                   error={!!fieldErrors.password}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 {fieldErrors.password?.map((msg) => (
-                  <p key={msg} className="text-xs text-error flex items-center gap-1">
-                    {msg}
-                  </p>
+                  <p key={msg} className="text-xs text-error">{msg}</p>
                 ))}
+
+                {/* Password strength */}
                 {password.length > 0 && (
-                  <div className="grid grid-cols-2 gap-1.5 pt-1">
-                    {rules.map((r) => (
-                      <span
-                        key={r.label}
-                        className={`text-xs flex items-center gap-1.5 transition-colors ${
-                          r.test(password) ? 'text-success' : 'text-muted/50'
-                        }`}
-                      >
-                        <span className="text-[10px]">{r.test(password) ? '●' : '○'}</span>
-                        {r.label}
-                      </span>
-                    ))}
+                  <div className="mt-2 space-y-2">
+                    {/* Progress bar */}
+                    <div className="flex gap-1">
+                      {rules.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                            i < passedCount ? 'bg-primary' : 'bg-border'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    {/* Rules grid */}
+                    <div className="grid grid-cols-2 gap-1">
+                      {rules.map((r) => (
+                        <span
+                          key={r.label}
+                          className={`text-xs flex items-center gap-1.5 transition-colors ${
+                            r.test(password) ? 'text-success' : 'text-muted/60'
+                          }`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${r.test(password) ? 'bg-success' : 'bg-muted/30'}`} />
+                          {r.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -126,7 +132,7 @@ export function SignupPage() {
               {error && <Alert variant="error">{error}</Alert>}
               {success && <Alert variant="success">{success}</Alert>}
 
-              <Button type="submit" size="full" disabled={pending} className="mt-2">
+              <Button type="submit" size="full" disabled={pending}>
                 {pending ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-slow" />
@@ -136,12 +142,12 @@ export function SignupPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-muted">
+            <p className="mt-6 text-center text-sm text-muted">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary font-medium hover:underline">
+              <Link to="/login" className="text-primary font-semibold hover:underline">
                 Sign in
               </Link>
-            </div>
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,30 +31,23 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <span className="text-primary text-xl">⬡</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1a1d2e]">Welcome back</h1>
-          <p className="text-sm text-muted mt-1">Sign in to your account</p>
-        </div>
+      <div className="w-full max-w-105 animate-slide-up">
+        <BrandHeader title="Welcome back" subtitle="Sign in to your account" />
 
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader>
             <CardTitle>Sign in</CardTitle>
             <CardDescription>Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-5">
               <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email address</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="you@example.com"
                   autoComplete="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -62,7 +56,7 @@ export function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link to="/password-reset" className="text-xs text-primary hover:underline">
+                  <Link to="/password-reset" className="text-xs text-primary hover:underline font-medium">
                     Forgot password?
                   </Link>
                 </div>
@@ -71,7 +65,6 @@ export function LoginPage() {
                   type="password"
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
@@ -79,7 +72,7 @@ export function LoginPage() {
 
               {error && <Alert variant="error">{error}</Alert>}
 
-              <Button type="submit" size="full" disabled={pending} className="mt-2">
+              <Button type="submit" size="full" disabled={pending}>
                 {pending ? (
                   <span className="flex items-center gap-2">
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin-slow" />
@@ -89,12 +82,12 @@ export function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-muted">
+            <p className="mt-6 text-center text-sm text-muted">
               No account?{' '}
-              <Link to="/signup" className="text-primary font-medium hover:underline">
+              <Link to="/signup" className="text-primary font-semibold hover:underline">
                 Create one
               </Link>
-            </div>
+            </p>
           </CardContent>
         </Card>
       </div>

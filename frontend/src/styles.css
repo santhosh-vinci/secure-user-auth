@@ -1,46 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f8f9fc;
-  --color-surface: #ffffff;
-  --color-border: #e2e6f0;
-  --color-primary: #6c63ff;
+  --color-background: #f4f6fb;
+  --color-surface:    #ffffff;
+  --color-border:     #e4e8f1;
+  --color-primary:    #6c63ff;
   --color-primary-hover: #5a52e0;
-  --color-muted: #8b92a9;
-  --color-error: #e53e6a;
-  --color-success: #16a34a;
-  --radius-card: 14px;
-  --radius-input: 8px;
+  --color-muted:      #8b92a9;
+  --color-error:      #e53e6a;
+  --color-success:    #16a34a;
+  --radius-card:      16px;
+  --radius-input:     10px;
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
 
   body {
     background-color: var(--color-background);
     color: #1a1d2e;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
-    background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(108, 99, 255, 0.08), transparent);
+    /* Layered gradient — top purple bloom + subtle bottom warmth */
+    background-image:
+      radial-gradient(ellipse 70% 50% at 50% -5%, rgba(108, 99, 255, 0.10), transparent),
+      radial-gradient(ellipse 50% 40% at 80% 110%, rgba(108, 99, 255, 0.04), transparent);
     background-attachment: fixed;
   }
+
+  /* Thin, styled scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
 }
 
 @layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.25s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
   .animate-slide-up {
-    animation: slideUp 0.3s ease forwards;
+    animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes slideUp {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 
   .animate-spin-slow {
-    animation: spin 0.7s linear infinite;
+    animation: spin 0.75s linear infinite;
   }
 
   @keyframes spin {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { authApi } from '../api/client';
+import { BrandHeader } from '@/components/BrandHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -23,15 +24,10 @@ export function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md animate-slide-up">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
-            <span className="text-primary text-xl">⬡</span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1a1d2e]">Email Verification</h1>
-        </div>
+      <div className="w-full max-w-105 animate-slide-up">
+        <BrandHeader title="Email Verification" subtitle="Confirming your email address" />
         <Card>
-          <CardHeader className="pb-4">
+          <CardHeader>
             <CardTitle>Verifying your email</CardTitle>
             <CardDescription>Please wait while we verify your email address</CardDescription>
           </CardHeader>

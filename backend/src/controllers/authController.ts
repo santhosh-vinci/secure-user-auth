@@ -134,10 +134,23 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
     const tokenHash = hashToken(token);
     const { ipAddress, userAgent } = extractFingerprint(req);
 
-    const record = await prisma.emailVerificationToken.findUnique({ where: { tokenHash } });
+    const record = await prisma.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      include: { user: { select: { isEmailVerified: true } } },
+    });
 
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
+    if (!record || record.expiresAt < new Date()) {
       res.status(400).json({ error: 'Invalid or expired verification token.' });
+      return;
+    }
+
+    // Token already used — if the account is verified, treat as success (idempotent)
+    if (record.usedAt) {
+      if (record.user.isEmailVerified) {
+        res.json({ message: 'Email already verified. You can sign in.' });
+      } else {
+        res.status(400).json({ error: 'Invalid or expired verification token.' });
+      }
       return;
     }
 
