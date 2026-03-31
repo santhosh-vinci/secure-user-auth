@@ -331,6 +331,29 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
   }
 }
 
+// ─── List all users (ADMIN only) ─────────────────────────────────────────────
+
+export async function listUsers(req: Request, res: Response): Promise<void> {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isEmailVerified: true,
+        isLocked: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({ users });
+  } catch (err) {
+    logger.error('List users error', { error: err });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+}
+
 // ─── Update user role (ADMIN only) ───────────────────────────────────────────
 
 export async function updateUserRole(req: Request, res: Response): Promise<void> {

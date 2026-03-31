@@ -1,5 +1,5 @@
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
@@ -45,6 +45,14 @@ export function DashboardPage() {
                 <span className="text-xs text-muted font-mono truncate max-w-[180px]">{user?.id}</span>
               </div>
             </div>
+
+            {(user?.role === 'ADMIN' || user?.role === 'MODERATOR') && (
+              <Link to="/admin">
+                <Button variant="outline" size="full">
+                  {user.role === 'ADMIN' ? 'Admin Panel' : 'User Directory'}
+                </Button>
+              </Link>
+            )}
 
             <Button variant="destructive" size="full" onClick={handleLogout}>
               Sign out

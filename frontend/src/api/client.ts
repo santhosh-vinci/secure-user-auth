@@ -57,6 +57,15 @@ export interface User {
   role: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: string;
+  isEmailVerified: boolean;
+  isLocked: boolean;
+  createdAt: string;
+}
+
 export const authApi = {
   signup: (email: string, password: string) =>
     request<{ message: string; details?: Record<string, string[]> }>('/auth/signup', {
@@ -92,5 +101,16 @@ export const authApi = {
     request<{ message: string }>('/auth/password-reset/confirm', {
       method: 'POST',
       body: JSON.stringify({ token, password }),
+    }),
+};
+
+export const adminApi = {
+  listUsers: () =>
+    request<{ users: AdminUser[] }>('/auth/admin/users'),
+
+  updateRole: (userId: string, role: string) =>
+    request<{ message: string }>(`/auth/users/${userId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
     }),
 };

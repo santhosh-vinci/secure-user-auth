@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   requiredRole?: string;
+  requiredRoles?: string[];
 }
 
-export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
+export function ProtectedRoute({ requiredRole, requiredRoles }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -18,7 +19,9 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (requiredRole && user.role !== requiredRole) return <Navigate to="/dashboard" replace />;
+
+  const allowed = requiredRoles ?? (requiredRole ? [requiredRole] : null);
+  if (allowed && !allowed.includes(user.role)) return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;
 }

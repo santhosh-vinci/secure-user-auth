@@ -7,6 +7,7 @@ import {
   requestPasswordReset,
   resetPassword,
   getMe,
+  listUsers,
   updateUserRole,
 } from '../controllers/authController';
 import { requireAuth } from '../middleware/requireAuth';
@@ -29,7 +30,10 @@ router.post('/password-reset/confirm', passwordResetLimiter, resetPassword);
 router.post('/logout', requireAuth, csrfProtection, logout);
 router.get('/me', requireAuth, getMe);
 
-// Admin — role management (session rotation enforced on role change)
+// Admin + Moderator — view users (read-only for moderators)
+router.get('/admin/users', requireAuth, requireRole(['ADMIN' as const, 'MODERATOR' as const]), listUsers);
+
+// Admin only — mutate roles
 router.patch('/users/:userId/role', requireAuth, csrfProtection, requireRole(['ADMIN' as const]), updateUserRole);
 
 export default router;

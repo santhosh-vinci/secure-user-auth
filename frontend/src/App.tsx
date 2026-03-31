@@ -5,6 +5,7 @@ import { PublicRoute } from './components/PublicRoute';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AdminPage } from './pages/AdminPage';
 import { PasswordResetPage } from './pages/PasswordResetPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
@@ -26,6 +27,11 @@ export default function App() {
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
+          </Route>
+
+          {/* Admin + Moderator */}
+          <Route element={<ProtectedRoute requiredRoles={['ADMIN', 'MODERATOR']} />}>
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
 
           {/* Default */}
