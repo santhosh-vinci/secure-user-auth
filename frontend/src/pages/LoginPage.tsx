@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BrandHeader } from '@/components/BrandHeader';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { Alert } from '@/components/ui/alert';
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -70,6 +72,9 @@ export function LoginPage() {
                 />
               </div>
 
+              {sessionExpired && !error && (
+                <Alert variant="info">Your session expired. Please sign in again.</Alert>
+              )}
               {error && <Alert variant="error">{error}</Alert>}
 
               <Button type="submit" size="full" disabled={pending}>

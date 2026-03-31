@@ -13,6 +13,8 @@ function getCsrfToken(): string {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -30,21 +32,41 @@ async function request<T>(
     if (csrf) headers['X-CSRF-Token'] = csrf;
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const res = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers,
-      credentials: 'include', // always send cookies
+      credentials: 'include',
+      signal: controller.signal,
     });
+    clearTimeout(timer);
 
     const json = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      // Session gone on a user-initiated request (not the background session check)
+      // /auth/me is exempt — AuthContext handles its own 401 silently
+      if (res.status === 401 && path !== '/auth/me') {
+        window.location.href = '/login?expired=1';
+        return { error: 'Session expired. Please sign in again.' };
+      }
+      // CSRF mismatch — same treatment
+      if (res.status === 403 && isStateMutating && json.error === 'Invalid CSRF token.') {
+        window.location.href = '/login?expired=1';
+        return { error: 'Session expired. Please sign in again.' };
+      }
       return { error: json.error ?? 'An unexpected error occurred.', details: json.details };
     }
 
     return { data: json };
-  } catch {
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { error: 'Request timed out. Please check your connection and try again.' };
+    }
     return { error: 'Network error. Please check your connection.' };
   }
 }
@@ -112,5 +134,10 @@ export const adminApi = {
     request<{ message: string }>(`/auth/users/${userId}/role`, {
       method: 'PATCH',
       body: JSON.stringify({ role }),
+    }),
+
+  unlockUser: (userId: string) =>
+    request<{ message: string }>(`/auth/users/${userId}/unlock`, {
+      method: 'POST',
     }),
 };

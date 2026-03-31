@@ -23,6 +23,7 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [updating, setUpdating] = useState<string | null>(null);
+  const [unlocking, setUnlocking] = useState<string | null>(null);
   const [roleSelections, setRoleSelections] = useState<Record<string, Role>>({});
   const [feedback, setFeedback] = useState<Record<string, { msg: string; ok: boolean }>>({});
 
@@ -40,10 +41,27 @@ export function AdminPage() {
     });
   }, []);
 
+  async function handleUnlock(userId: string) {
+    setUnlocking(userId);
+    setFeedback((prev) => ({ ...prev, [userId]: { msg: '', ok: false } }));
+
+    const res = await adminApi.unlockUser(userId);
+
+    if (res.error) {
+      setFeedback((prev) => ({ ...prev, [userId]: { msg: res.error!, ok: false } }));
+    } else {
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, isLocked: false } : u)));
+      setFeedback((prev) => ({ ...prev, [userId]: { msg: 'Account unlocked.', ok: true } }));
+    }
+    setUnlocking(null);
+  }
+
   async function handleRoleChange(userId: string) {
     const newRole = roleSelections[userId];
     const target = users.find((u) => u.id === userId);
     if (!target || target.role === newRole) return;
+
+    if (!window.confirm(`Change ${target.email}'s role from ${target.role} to ${newRole}?\n\nThis will immediately invalidate all their active sessions.`)) return;
 
     setUpdating(userId);
     setFeedback((prev) => ({ ...prev, [userId]: { msg: '', ok: false } }));
@@ -83,7 +101,7 @@ export function AdminPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
-              ← Dashboard
+              Dashboard
             </Button>
             <Button variant="destructive" size="sm" onClick={handleLogout}>
               Sign out
@@ -155,9 +173,20 @@ export function AdminPage() {
                                 {u.isEmailVerified ? 'Verified' : 'Unverified'}
                               </span>
                               {u.isLocked && (
-                                <span className="inline-flex w-fit items-center rounded-lg border border-red-200 bg-red-50 px-2 py-px text-xs font-medium text-red-700">
-                                  Locked
-                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-flex w-fit items-center rounded-lg border border-red-200 bg-red-50 px-2 py-px text-xs font-medium text-red-700">
+                                    Locked
+                                  </span>
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleUnlock(u.id)}
+                                      disabled={unlocking === u.id}
+                                      className="text-xs text-primary hover:underline disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                      {unlocking === u.id ? 'Unlocking…' : 'Unlock'}
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </td>

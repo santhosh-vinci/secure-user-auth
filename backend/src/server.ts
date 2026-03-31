@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { globalRateLimiter } from './middleware/rateLimiter';
 import authRoutes from './routes/authRoutes';
 import { logger } from './config/logger';
+import { startAuditLogRetention } from './services/auditLogRetention';
 
 const app = express();
 
@@ -95,6 +96,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(env.PORT, () => {
   logger.info(`Server running on port ${env.PORT} [${env.NODE_ENV}]`);
+  startAuditLogRetention();
 });
 
 export default app;

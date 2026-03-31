@@ -17,6 +17,8 @@ export function PasswordResetPage() {
   const token = params.get('token');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [confirmError, setConfirmError] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [pending, setPending] = useState(false);
@@ -33,6 +35,8 @@ export function PasswordResetPage() {
   async function handleReset(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!token) return;
+    setConfirmError('');
+    if (confirm !== password) { setConfirmError('Passwords do not match.'); return; }
     setError(''); setSuccess(''); setPending(true);
     const res = await authApi.resetPassword(token, password);
     setPending(false);
@@ -62,6 +66,19 @@ export function PasswordResetPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirm">Confirm new password</Label>
+                  <Input
+                    id="confirm"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    error={!!confirmError}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                  />
+                  {confirmError && <p className="text-xs text-error">{confirmError}</p>}
                 </div>
                 {error && <Alert variant="error">{error}</Alert>}
                 {success && (
@@ -110,7 +127,7 @@ export function PasswordResetPage() {
               </Button>
             </form>
             <p className="mt-6 text-center text-sm text-muted">
-              <Link to="/login" className="text-primary font-semibold hover:underline">← Back to sign in</Link>
+              <Link to="/login" className="text-primary font-semibold hover:underline">Back to sign in</Link>
             </p>
           </CardContent>
         </Card>

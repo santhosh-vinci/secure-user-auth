@@ -24,11 +24,24 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
 
-  // Restore session on mount
+  // Restore session on mount — cancelled flag prevents setState after unmount
   useEffect(() => {
+    let cancelled = false;
     authApi.me()
-      .then((res) => setState({ user: res.data?.user ?? null, loading: false }))
-      .catch(() => setState({ user: null, loading: false }));
+      .then((res) => { if (!cancelled) setState({ user: res.data?.user ?? null, loading: false }); })
+      .catch(() => { if (!cancelled) setState({ user: null, loading: false }); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Sync logout across browser tabs
+  useEffect(() => {
+    function handleStorage(e: StorageEvent) {
+      if (e.key === 'logout_broadcast') {
+        setState({ user: null, loading: false });
+      }
+    }
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -40,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await authApi.logout();
+    localStorage.setItem('logout_broadcast', Date.now().toString());
     setState({ user: null, loading: false });
   }, []);
 

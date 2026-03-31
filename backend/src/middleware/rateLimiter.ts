@@ -84,9 +84,22 @@ export const authRateLimiter = rateLimit({
     const ip =
       (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ||
       req.socket.remoteAddress || 'unknown';
-    const email = (req.body?.email as string | undefined)?.toLowerCase().trim() || '';
+    const email = (req.body?.email as string | undefined)?.toLowerCase().trim() || 'anonymous';
     return `${ip}:${email}`;
   },
+  handler: rateLimitResponse,
+});
+
+// ─── Email verification: 10 attempts / 15 min per IP ─────────────────────────
+// Prevents brute-forcing the 64-char hex verification token
+
+export const verifyEmailLimiter = rateLimit({
+  windowMs: AUTH_WINDOW,
+  max: 10,
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  store: makeStore('verify-email:', AUTH_WINDOW),
   handler: rateLimitResponse,
 });
 
@@ -103,7 +116,7 @@ export const passwordResetLimiter = rateLimit({
     const ip =
       (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ||
       req.socket.remoteAddress || 'unknown';
-    const email = (req.body?.email as string | undefined)?.toLowerCase().trim() || '';
+    const email = (req.body?.email as string | undefined)?.toLowerCase().trim() || 'anonymous';
     return `${ip}:${email}`;
   },
   handler: rateLimitResponse,

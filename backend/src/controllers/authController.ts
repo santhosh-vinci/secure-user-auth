@@ -15,7 +15,7 @@ import {
   clearSessionCookie,
   getSessionCookieName,
 } from '../utils/session';
-import { recordFailedLogin, resetFailedLogins, isAccountLocked } from '../utils/lockout';
+import { recordFailedLogin, resetFailedLogins, isAccountLocked, recordFailedLoginByIp, isIpLocked } from '../utils/lockout';
 import { extractFingerprint } from '../utils/fingerprint';
 import { createAuditLog } from '../services/auditLog';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email';
@@ -86,7 +86,13 @@ export async function signup(req: Request, res: Response): Promise<void> {
       ]);
 
       await createAuditLog({ userId: existing.id, ipAddress, userAgent, action: 'EMAIL_VERIFICATION_SENT' });
-      await sendVerificationEmail(email, verificationToken);
+
+      try {
+        await sendVerificationEmail(email, verificationToken);
+      } catch {
+        res.status(500).json({ error: 'Account exists but we could not send the verification email. Please try again in a few minutes.' });
+        return;
+      }
 
       res.status(201).json({ message: GENERIC });
       return;
@@ -111,7 +117,13 @@ export async function signup(req: Request, res: Response): Promise<void> {
 
     await createAuditLog({ userId: user.id, ipAddress, userAgent, action: 'SIGNUP' });
     await createAuditLog({ userId: user.id, ipAddress, userAgent, action: 'EMAIL_VERIFICATION_SENT' });
-    await sendVerificationEmail(email, verificationToken);
+
+    try {
+      await sendVerificationEmail(email, verificationToken);
+    } catch {
+      res.status(500).json({ error: 'Account created but we could not send the verification email. Please try signing up again to resend it.' });
+      return;
+    }
 
     res.status(201).json({ message: GENERIC });
   } catch (err) {
@@ -144,7 +156,7 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Token already used — if the account is verified, treat as success (idempotent)
+    // Token already used — if account is verified treat as success (idempotent)
     if (record.usedAt) {
       if (record.user.isEmailVerified) {
         res.json({ message: 'Email already verified. You can sign in.' });
@@ -154,10 +166,19 @@ export async function verifyEmail(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    await prisma.$transaction([
-      prisma.emailVerificationToken.update({ where: { tokenHash }, data: { usedAt: new Date() } }),
-      prisma.user.update({ where: { id: record.userId }, data: { isEmailVerified: true } }),
-    ]);
+    // Atomic claim: only succeeds if usedAt is still null — prevents double-use race
+    const claimed = await prisma.emailVerificationToken.updateMany({
+      where: { tokenHash, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (claimed.count === 0) {
+      // Another request beat us to it
+      res.status(400).json({ error: 'Invalid or expired verification token.' });
+      return;
+    }
+
+    await prisma.user.update({ where: { id: record.userId }, data: { isEmailVerified: true } });
 
     await createAuditLog({ userId: record.userId, ipAddress, userAgent, action: 'EMAIL_VERIFIED' });
 
@@ -184,16 +205,25 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     await constantTimeDelay();
 
+    // Per-IP lockout check — fail fast before any DB work
+    if (isIpLocked(ipAddress)) {
+      await createAuditLog({ ipAddress, userAgent, action: 'LOGIN_LOCKED', metadata: { reason: 'ip_lockout' } });
+      res.status(429).json({ error: 'Too many login attempts from this location. Please try again later.' });
+      return;
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
       await hashPassword(password);
+      recordFailedLoginByIp(ipAddress);
       await createAuditLog({ ipAddress, userAgent, action: 'LOGIN_FAILURE', metadata: { email } });
       res.status(401).json({ error: 'Invalid credentials.' });
       return;
     }
 
     if (await isAccountLocked(user.id)) {
+      recordFailedLoginByIp(ipAddress);
       await createAuditLog({ userId: user.id, ipAddress, userAgent, action: 'LOGIN_LOCKED' });
       res.status(403).json({ error: 'Account is temporarily locked. Please try again later.' });
       return;
@@ -203,6 +233,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     if (!valid) {
       await recordFailedLogin(user.id);
+      recordFailedLoginByIp(ipAddress);
       await createAuditLog({ userId: user.id, ipAddress, userAgent, action: 'LOGIN_FAILURE' });
       res.status(401).json({ error: 'Invalid credentials.' });
       return;
@@ -285,8 +316,19 @@ export async function requestPasswordReset(req: Request, res: Response): Promise
       return;
     }
 
+    // Silently block locked accounts — don't reveal lock status to caller
+    if (await isAccountLocked(user.id)) {
+      res.json({ message: GENERIC });
+      return;
+    }
+
     const resetToken = generateSecureToken();
     const resetTokenHash = hashToken(resetToken);
+
+    // Invalidate all previous unused reset tokens — prevents token accumulation
+    await prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id, usedAt: null },
+    });
 
     await prisma.passwordResetToken.create({
       data: {
@@ -297,7 +339,13 @@ export async function requestPasswordReset(req: Request, res: Response): Promise
     });
 
     await createAuditLog({ userId: user.id, ipAddress, userAgent, action: 'PASSWORD_RESET_REQUESTED' });
-    await sendPasswordResetEmail(email, resetToken);
+
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+    } catch {
+      res.status(500).json({ error: 'We could not send the reset email. Please try again in a few minutes.' });
+      return;
+    }
 
     res.json({ message: GENERIC });
   } catch (err) {
@@ -329,8 +377,18 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
 
     const newHash = await hashPassword(password);
 
+    // Atomic claim: only succeeds if usedAt is still null — prevents double-use race
+    const claimed = await prisma.passwordResetToken.updateMany({
+      where: { tokenHash, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+
+    if (claimed.count === 0) {
+      res.status(400).json({ error: 'Invalid or expired reset token.' });
+      return;
+    }
+
     await prisma.$transaction([
-      prisma.passwordResetToken.update({ where: { tokenHash }, data: { usedAt: new Date() } }),
       prisma.user.update({ where: { id: record.userId }, data: { passwordHash: newHash } }),
       prisma.session.deleteMany({ where: { userId: record.userId } }),
     ]);
@@ -340,6 +398,47 @@ export async function resetPassword(req: Request, res: Response): Promise<void> 
     res.json({ message: 'Password reset successful' });
   } catch (err) {
     logger.error('Password reset error', { error: err });
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+}
+
+// ─── Unlock user account (ADMIN only) ────────────────────────────────────────
+
+export async function unlockUser(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.params.userId as string;
+    const { ipAddress, userAgent } = extractFingerprint(req);
+    const actorId = (req as any).user?.id as string;
+
+    if (!userId) {
+      res.status(400).json({ error: 'User ID is required.' });
+      return;
+    }
+
+    const target = await prisma.user.findUnique({ where: { id: userId } });
+    if (!target) {
+      res.status(404).json({ error: 'User not found.' });
+      return;
+    }
+
+    if (!target.isLocked) {
+      res.status(400).json({ error: 'User account is not locked.' });
+      return;
+    }
+
+    await resetFailedLogins(userId);
+
+    await createAuditLog({
+      userId: actorId,
+      ipAddress,
+      userAgent,
+      action: 'ACCOUNT_LOCKED',
+      metadata: { targetUserId: userId, action: 'manual_unlock' },
+    });
+
+    res.json({ message: 'Account unlocked successfully.' });
+  } catch (err) {
+    logger.error('Unlock user error', { error: err });
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 }

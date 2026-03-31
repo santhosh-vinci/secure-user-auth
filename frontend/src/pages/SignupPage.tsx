@@ -20,6 +20,7 @@ export function SignupPage() {
   const { signup } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -32,6 +33,8 @@ export function SignupPage() {
     const errs: Record<string, string[]> = {};
     if (!email.trim()) errs.email = ['Please fill in your email.'];
     if (!password) errs.password = ['Please fill in your password.'];
+    if (!confirm) errs.confirm = ['Please confirm your password.'];
+    else if (password && confirm !== password) errs.confirm = ['Passwords do not match.'];
     if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
 
     setPending(true);
@@ -48,7 +51,7 @@ export function SignupPage() {
       }
     } else {
       setSuccess(result.message ?? 'Check your email to verify your account.');
-      setEmail(''); setPassword('');
+      setEmail(''); setPassword(''); setConfirm('');
     }
   }
 
@@ -127,6 +130,22 @@ export function SignupPage() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm">Confirm password</Label>
+                <Input
+                  id="confirm"
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  error={!!fieldErrors.confirm}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                />
+                {fieldErrors.confirm?.map((msg) => (
+                  <p key={msg} className="text-xs text-error">{msg}</p>
+                ))}
               </div>
 
               {error && <Alert variant="error">{error}</Alert>}

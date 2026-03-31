@@ -30,6 +30,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
 
+  @@index([createdAt])
   @@map("users")
 }
 
