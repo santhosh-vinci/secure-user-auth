@@ -1,0 +1,227 @@
+{
+  "info": {
+    "name": "SecureAuth API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000/api" },
+    { "key": "csrfToken", "value": "" },
+    { "key": "verifyToken", "value": "" },
+    { "key": "resetToken", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Signup",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/auth/signup", "host": ["{{baseUrl}}"], "path": ["auth", "signup"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234567!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Signup responded', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "console.log('Check backend terminal for the [DEV] verification token');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Verify Email",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["auth", "verify-email"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{verifyToken}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Paste the token from the backend terminal into the verifyToken collection variable"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Email verified', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@1234567!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login successful', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Auto-extract CSRF token from cookie",
+              "const cookies = pm.cookies.toObject();",
+              "if (cookies['csrf_token']) {",
+              "  pm.collectionVariables.set('csrfToken', cookies['csrf_token']);",
+              "  console.log('CSRF token saved:', cookies['csrf_token']);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Get Current User (me)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Got user', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.user).to.have.property('email');",
+              "  pm.expect(json.user).to.have.property('role');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "X-CSRF-Token", "value": "{{csrfToken}}" }
+        ],
+        "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] },
+        "body": { "mode": "raw", "raw": "{}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Logged out', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.collectionVariables.set('csrfToken', '');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Request Password Reset",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/auth/password-reset/request", "host": ["{{baseUrl}}"], "path": ["auth", "password-reset", "request"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Reset requested', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "console.log('Check backend terminal for the [DEV] reset token');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Confirm Password Reset",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/auth/password-reset/confirm", "host": ["{{baseUrl}}"], "path": ["auth", "password-reset", "confirm"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"password\": \"NewPass@9876543!\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Paste the token from the backend terminal into the resetToken collection variable"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Password reset', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "http://localhost:4000/health", "host": ["http://localhost:4000"], "path": ["health"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Server healthy', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
